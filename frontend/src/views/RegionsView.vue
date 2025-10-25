@@ -8,7 +8,10 @@ const regionStore = useRegionStore()
 const showForm = ref(false)
 const selectedRegion = ref<Region | null>(null)
 const showConfirmDialog = ref(false)
+const showDeleteDialog = ref(false)
 const regionToToggle = ref<number | null>(null)
+const regionToDelete = ref<Region | null>(null)
+const confirmationType = ref<'toggle' | 'delete'>('toggle')
 
 onMounted(async () => {
   await regionStore.fetchRegions()
@@ -31,14 +34,27 @@ function closeForm() {
 
 function confirmToggleActive(region: Region) {
   regionToToggle.value = region.id
+  confirmationType.value = 'toggle'
   showConfirmDialog.value = true
 }
 
-async function handleToggleActive() {
-  if (regionToToggle.value !== null) {
-    await regionStore.toggleRegionActive(regionToToggle.value)
+function confirmDeleteRegion(region: Region) {
+  regionToDelete.value = region
+  confirmationType.value = 'delete'
+  showConfirmDialog.value = true
+}
+
+async function handleConfirmAction() {
+  try {
+    if (confirmationType.value === 'toggle' && regionToToggle.value !== null) {
+      await regionStore.toggleRegionActive(regionToToggle.value)
+    } else if (confirmationType.value === 'delete' && regionToDelete.value !== null) {
+      await regionStore.deleteRegion(regionToDelete.value.id)
+    }
+  } finally {
     showConfirmDialog.value = false
     regionToToggle.value = null
+    regionToDelete.value = null
   }
 }
 </script>
@@ -83,14 +99,20 @@ async function handleToggleActive() {
                 </span>
               </td>
               <td class="actions-column">
+                <button class="btn btn-secondary" @click="openEditForm(region)">
+                  Edit
+                </button>
                 <button 
                   @click="confirmToggleActive(region)"
                   :class="['btn', region.isActive ? 'btn-danger' : 'btn-secondary']"
                 >
                   {{ region.isActive ? 'Inactivate' : 'Activate' }}
                 </button>
-                <button class="btn btn-secondary" @click="openEditForm(region)">
-                  Edit
+                <button 
+                  class="btn btn-outline-danger" 
+                  @click="confirmDeleteRegion(region)"
+                >
+                  Delete
                 </button>
               </td>
             </tr>
@@ -115,14 +137,23 @@ async function handleToggleActive() {
     <!-- Confirmation Dialog -->
     <div v-if="showConfirmDialog" class="modal-overlay">
       <div class="card confirmation-dialog">
-        <h3>Confirm Action</h3>
-        <p>Are you sure you want to {{ regionStore.regions.find(r => r.id === regionToToggle)?.isActive ? 'inactivate' : 'activate' }} this region?</p>
+        <h3>Confirm {{ confirmationType === 'delete' ? 'Delete' : 'Action' }}</h3>
+        <p v-if="confirmationType === 'delete'">
+          Are you sure you want to delete the region "{{ regionToDelete?.name }}"?<br>
+          This action cannot be undone.
+        </p>
+        <p v-else>
+          Are you sure you want to {{ regionStore.regions.find((r: Region) => r.id === regionToToggle)?.isActive ? 'inactivate' : 'activate' }} this region?
+        </p>
         <div class="dialog-actions">
           <button class="btn btn-secondary" @click="showConfirmDialog = false">
             Cancel
           </button>
-          <button class="btn btn-primary" @click="handleToggleActive">
-            Confirm
+          <button 
+            :class="['btn', confirmationType === 'delete' ? 'btn-danger' : 'btn-primary']"
+            @click="handleConfirmAction"
+          >
+            {{ confirmationType === 'delete' ? 'Delete' : 'Confirm' }}
           </button>
         </div>
       </div>

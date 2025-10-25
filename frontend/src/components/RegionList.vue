@@ -7,6 +7,8 @@ import type { Region } from '@/types/Region'
 const regionStore = useRegionStore()
 const selectedRegion = ref<Region | null>(null)
 const showForm = ref(false)
+const showDeleteConfirm = ref(false)
+const regionToDelete = ref<Region | null>(null)
 
 onMounted(() => {
   regionStore.fetchRegions()
@@ -30,6 +32,25 @@ function handleCloseForm() {
 async function handleToggleActive(region: Region) {
   await regionStore.toggleRegionActive(region.id)
   await regionStore.fetchRegions()
+}
+
+function handleDeleteClick(region: Region) {
+  regionToDelete.value = region
+  showDeleteConfirm.value = true
+}
+
+async function handleDeleteConfirm() {
+  if (regionToDelete.value) {
+    await regionStore.deleteRegion(regionToDelete.value.id)
+    await regionStore.fetchRegions()
+    showDeleteConfirm.value = false
+    regionToDelete.value = null
+  }
+}
+
+function handleDeleteCancel() {
+  showDeleteConfirm.value = false
+  regionToDelete.value = null
 }
 </script>
 
@@ -86,7 +107,14 @@ async function handleToggleActive(region: Region) {
                 @click="handleToggleActive(region)"
                 :data-test-id="'toggle-region-' + region.id"
               >
-                {{ region.isActive ? 'Deactivate' : 'Activate' }}
+                {{ region.isActive ? 'Inactivate' : 'Activate' }}
+              </button>
+              <button 
+                class="btn btn-sm btn-outline-danger"
+                @click="handleDeleteClick(region)"
+                :data-test-id="'delete-region-' + region.id"
+              >
+                Delete
               </button>
             </div>
           </td>
@@ -99,6 +127,32 @@ async function handleToggleActive(region: Region) {
       :region="selectedRegion"
       :onClose="handleCloseForm"
     />
+
+    <div v-if="showDeleteConfirm" class="modal-overlay">
+      <div class="modal-content" data-test-id="delete-confirm-dialog">
+        <h3>Confirm Delete</h3>
+        <p>
+          Are you sure you want to delete the region "{{ regionToDelete?.name }}"?
+          This action cannot be undone.
+        </p>
+        <div class="modal-actions">
+          <button 
+            class="btn btn-secondary" 
+            @click="handleDeleteCancel"
+            data-test-id="delete-cancel"
+          >
+            Cancel
+          </button>
+          <button 
+            class="btn btn-danger" 
+            @click="handleDeleteConfirm"
+            data-test-id="delete-confirm"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -163,5 +217,39 @@ async function handleToggleActive(region: Region) {
 .btn-sm {
   padding: 0.25rem 0.5rem;
   font-size: 0.875rem;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: var(--color-background);
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  max-width: 90%;
+  width: 400px;
+}
+
+.modal-content h3 {
+  margin-top: 0;
+  color: var(--color-heading);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1.5rem;
 }
 </style>

@@ -121,6 +121,21 @@ export const useRegionStore = defineStore('region', {
             } finally {
                 this.loading = false
             }
+        },
+
+        async deleteRegion(id: number) {
+            this.loading = true
+            this.error = null
+            try {
+                await RegionService.delete(id)
+                this.regions = this.regions.filter((region: Region) => region.id !== id)
+            } catch (error) {
+                this.error = 'Failed to delete region'
+                console.error(error)
+                throw error
+            } finally {
+                this.loading = false
+            }
         }
     }
 })

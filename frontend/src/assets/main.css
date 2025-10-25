@@ -39,10 +39,34 @@
 .btn-danger {
   background-color: var(--color-danger);
   color: white;
+  border-color: var(--color-danger);
 }
 
 .btn-danger:hover {
   background-color: var(--color-danger-dark);
+  border-color: var(--color-danger-dark);
+}
+
+.btn-outline-danger {
+  background-color: transparent;
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.btn-outline-danger:hover {
+  background-color: var(--color-danger);
+  color: white;
+}
+
+.btn-success {
+  background-color: var(--color-success);
+  color: white;
+  border-color: var(--color-success);
+}
+
+.btn-success:hover {
+  background-color: var(--color-success-dark);
+  border-color: var(--color-success-dark);
 }
 
 .table {
@@ -129,6 +153,7 @@
   --color-primary: #3498db;
   --color-primary-dark: #2980b9;
   --color-success: #2ecc71;
+  --color-success-dark: #27ae60;
   --color-success-bg: #d5f5e3;
   --color-danger: #e74c3c;
   --color-danger-dark: #c0392b;

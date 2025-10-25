@@ -50,5 +50,14 @@ export const RegionService = {
         if (!response.ok) {
             throw new Error('Failed to toggle region status')
         }
+    },
+
+    async delete(id: number): Promise<void> {
+        const response = await fetch(`${api.API_BASE_URL}/regions/${id}`, {
+            method: 'DELETE'
+        })
+        if (!response.ok) {
+            throw new Error('Failed to delete region')
+        }
     }
 }
