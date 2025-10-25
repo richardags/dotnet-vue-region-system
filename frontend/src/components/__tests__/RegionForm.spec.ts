@@ -37,12 +37,12 @@ describe('RegionForm', () => {
 
         it('renders create form correctly', () => {
             expect(wrapper.find('h3').text()).toBe('Add New Region')
-            expect(wrapper.find('button[type="submit"]').text()).toBe('Create')
+            expect(wrapper.find('[data-test-id="submit-form"]').text()).toBe('Create')
         })
 
         it('validates required fields', async () => {
-            await wrapper.find('form').trigger('submit')
-            expect(wrapper.text()).toContain('Name and State are required')
+            await wrapper.find('[data-test-id="region-form-fields"]').trigger('submit')
+            expect(wrapper.find('[data-test-id="form-error-message"]').text()).toBe('Name and State are required.')
         })
 
         it('handles successful region creation', async () => {
@@ -86,16 +86,16 @@ describe('RegionForm', () => {
 
         it('renders edit form correctly', () => {
             expect(wrapper.find('h3').text()).toBe('Edit Region')
-            expect(wrapper.find('button[type="submit"]').text()).toBe('Update')
-            expect((wrapper.find('#name').element as HTMLInputElement).value).toBe('Existing Region')
-            expect((wrapper.find('#state').element as HTMLInputElement).value).toBe('ER')
+            expect(wrapper.find('[data-test-id="submit-form"]').text()).toBe('Update')
+            expect((wrapper.find('[data-test-id="region-name-input"]').element as HTMLInputElement).value).toBe('Existing Region')
+            expect((wrapper.find('[data-test-id="region-state-input"]').element as HTMLInputElement).value).toBe('ER')
         })
 
         it('handles successful region update', async () => {
             const store = useRegionStore()
             
-            await wrapper.find('#name').setValue('Updated Region')
-            await wrapper.find('#state').setValue('UR')
+            await wrapper.find('[data-test-id="region-name-input"]').setValue('Updated Region')
+            await wrapper.find('[data-test-id="region-state-input"]').setValue('UR')
             await wrapper.find('form').trigger('submit')
 
             expect(store.updateRegion).toHaveBeenCalledWith(1, {
@@ -170,7 +170,7 @@ describe('RegionForm', () => {
         })
 
         it('handles cancel button click', async () => {
-            await wrapper.find('button.btn-secondary').trigger('click')
+            await wrapper.find('[data-test-id="cancel-form"]').trigger('click')
             expect(mockOnClose).toHaveBeenCalled()
         })
 
@@ -185,10 +185,10 @@ describe('RegionForm', () => {
             await wrapper.find('#state').setValue('TS')
 
             // Verify initial state - no elements should have disabled attribute
-            expect(wrapper.find('#name[disabled]').exists()).toBe(false)
-            expect(wrapper.find('#state[disabled]').exists()).toBe(false)
-            expect(wrapper.find('button[type="submit"][disabled]').exists()).toBe(false)
-            expect(wrapper.find('button.btn-secondary[disabled]').exists()).toBe(false)
+            expect(wrapper.find('[data-test-id="region-name-input"][disabled]').exists()).toBe(false)
+            expect(wrapper.find('[data-test-id="region-state-input"][disabled]').exists()).toBe(false)
+            expect(wrapper.find('[data-test-id="submit-form"][disabled]').exists()).toBe(false)
+            expect(wrapper.find('[data-test-id="cancel-form"][disabled]').exists()).toBe(false)
 
             // Trigger form submission which should disable controls
             await wrapper.find('form').trigger('submit')
@@ -197,17 +197,17 @@ describe('RegionForm', () => {
             // First verify the loading state was set in the component
             const vm = wrapper.vm as unknown as { loading: boolean }
             expect(vm.loading).toBe(true)
-            expect(wrapper.find('button[type="submit"]').text()).toBe('Saving...')
+            expect(wrapper.find('[data-test-id="submit-form"]').text()).toBe('Saving...')
 
             // Then verify all controls have the disabled attribute
-            expect(wrapper.find('#name[disabled]').exists()).toBe(true)
-            expect(wrapper.find('#state[disabled]').exists()).toBe(true)
-            expect(wrapper.find('button[type="submit"][disabled]').exists()).toBe(true)
-            expect(wrapper.find('button.btn-secondary[disabled]').exists()).toBe(true)
+            expect(wrapper.find('[data-test-id="region-name-input"][disabled]').exists()).toBe(true)
+            expect(wrapper.find('[data-test-id="region-state-input"][disabled]').exists()).toBe(true)
+            expect(wrapper.find('[data-test-id="submit-form"][disabled]').exists()).toBe(true)
+            expect(wrapper.find('[data-test-id="cancel-form"][disabled]').exists()).toBe(true)
         })
 
         it('limits state code to 2 characters', async () => {
-            const stateInput = wrapper.find('#state')
+            const stateInput = wrapper.find('[data-test-id="region-state-input"]')
             expect(stateInput.attributes('maxlength')).toBe('2')
         })
     })

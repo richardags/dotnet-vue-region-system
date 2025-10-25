@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useRegionStore } from '@/stores/RegionStore'
 
@@ -71,13 +71,13 @@ function resetForm() {
 </script>
 
 <template>
-  <div class="region-form card">
+  <div class="region-form card" data-test-id="region-form">
     <div class="form-header">
       <h3>{{ region ? 'Edit Region' : 'Add New Region' }}</h3>
-      <button class="btn btn-secondary" @click="onClose">×</button>
+      <button class="btn btn-secondary" @click="onClose" data-test-id="close-form">×</button>
     </div>
 
-    <form @submit.prevent="handleSubmit">
+    <form @submit.prevent="handleSubmit" data-test-id="region-form-fields">
       <div class="form-group">
         <label class="form-label" for="name">Name</label>
         <input
@@ -87,6 +87,7 @@ function resetForm() {
           class="form-input"
           placeholder="Enter region name"
           :disabled="loading"
+          data-test-id="region-name-input"
         >
       </div>
 
@@ -101,11 +102,12 @@ function resetForm() {
           maxlength="2"
           style="text-transform: uppercase;"
           :disabled="loading"
+          data-test-id="region-state-input"
           @input="state = $event.target.value.toUpperCase()"
         >
       </div>
 
-      <div v-if="error" class="error-message">
+      <div v-if="error" class="error-message" data-test-id="form-error-message">
         {{ error }}
       </div>
 
@@ -115,6 +117,7 @@ function resetForm() {
           class="btn btn-secondary" 
           @click="onClose"
           :disabled="loading"
+          data-test-id="cancel-form"
         >
           Cancel
         </button>
@@ -122,6 +125,7 @@ function resetForm() {
           type="submit" 
           class="btn btn-primary"
           :disabled="loading"
+          data-test-id="submit-form"
         >
           {{ loading ? 'Saving...' : (region ? 'Update' : 'Create') }}
         </button>

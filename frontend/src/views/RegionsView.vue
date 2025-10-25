@@ -13,8 +13,8 @@ const regionToToggle = ref<number | null>(null)
 const regionToDelete = ref<Region | null>(null)
 const confirmationType = ref<'toggle' | 'delete'>('toggle')
 
-onMounted(async () => {
-  await regionStore.fetchRegions()
+onMounted(() => {
+  regionStore.fetchRegions()
 })
 
 function openCreateForm() {
@@ -68,29 +68,33 @@ async function handleConfirmAction() {
       </button>
     </div>
 
-    <div v-if="regionStore.loading" class="card loading-card">
-      <div class="loading-spinner"></div>
-      <p>Loading regions...</p>
-    </div>
+    <template v-if="regionStore.loading">
+      <div class="loading-spinner" data-test-id="loading-indicator">
+        <div class="spinner"></div>
+        <p>Loading regions</p>
+      </div>
+    </template>
     
-    <div v-else-if="regionStore.error" class="card error-card">
-      <span class="icon">⚠️</span>
-      <p>{{ regionStore.error }}</p>
-    </div>
+    <template v-else-if="regionStore.error">
+      <div class="error-card" data-test-id="error-message">
+        <span class="icon">⚠️</span>
+        <p>{{ regionStore.error }}</p>
+      </div>
+    </template>
     
-    <div v-else class="regions-content">
-      <div class="card" v-if="regionStore.sortedRegions.length">
-        <table class="table">
+    <template v-else>
+      <div v-if="regionStore.sortedRegions.length" class="regions-content" data-test-id="regions-table-container">
+        <table class="table" data-test-id="regions-table">
           <thead>
             <tr>
               <th>Name</th>
               <th>State</th>
               <th>Status</th>
-              <th class="actions-column">Actions</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="region in regionStore.sortedRegions" :key="region.id">
+            <tr v-for="region in regionStore.sortedRegions" :key="region.id" :data-test-id="'region-row-' + region.id">
               <td>{{ region.name }}</td>
               <td>{{ region.state }}</td>
               <td>
@@ -99,18 +103,24 @@ async function handleConfirmAction() {
                 </span>
               </td>
               <td class="actions-column">
-                <button class="btn btn-secondary" @click="openEditForm(region)">
+                <button 
+                  class="btn btn-secondary" 
+                  @click="openEditForm(region)"
+                  :data-test-id="'edit-region-' + region.id"
+                >
                   Edit
                 </button>
                 <button 
                   @click="confirmToggleActive(region)"
                   :class="['btn', region.isActive ? 'btn-danger' : 'btn-secondary']"
+                  :data-test-id="'toggle-region-' + region.id"
                 >
                   {{ region.isActive ? 'Inactivate' : 'Activate' }}
                 </button>
                 <button 
                   class="btn btn-outline-danger" 
                   @click="confirmDeleteRegion(region)"
+                  :data-test-id="'delete-region-' + region.id"
                 >
                   Delete
                 </button>
@@ -122,9 +132,15 @@ async function handleConfirmAction() {
       <div v-else class="card empty-state">
         <span class="icon">📝</span>
         <p>No regions found. Add your first region to get started.</p>
-        <button class="btn btn-primary">Add Region</button>
+        <button 
+          class="btn btn-primary"
+          @click="openCreateForm"
+          data-test-id="create-region"
+        >
+          Add Region
+        </button>
       </div>
-    </div>
+    </template>
 
     <!-- Region Form Modal -->
     <div v-if="showForm" class="modal-overlay">
@@ -136,8 +152,8 @@ async function handleConfirmAction() {
 
     <!-- Confirmation Dialog -->
     <div v-if="showConfirmDialog" class="modal-overlay">
-      <div class="card confirmation-dialog">
-        <h3>Confirm {{ confirmationType === 'delete' ? 'Delete' : 'Action' }}</h3>
+      <div class="card confirmation-dialog" data-test-id="confirmation-dialog">
+        <h3>{{ confirmationType === 'delete' ? 'Delete Region' : 'Confirm Action' }}</h3>
         <p v-if="confirmationType === 'delete'">
           Are you sure you want to delete the region "{{ regionToDelete?.name }}"?<br>
           This action cannot be undone.
@@ -146,12 +162,17 @@ async function handleConfirmAction() {
           Are you sure you want to {{ regionStore.regions.find((r: Region) => r.id === regionToToggle)?.isActive ? 'inactivate' : 'activate' }} this region?
         </p>
         <div class="dialog-actions">
-          <button class="btn btn-secondary" @click="showConfirmDialog = false">
+          <button 
+            class="btn btn-secondary" 
+            @click="showConfirmDialog = false"
+            data-test-id="cancel-action"
+          >
             Cancel
           </button>
           <button 
             :class="['btn', confirmationType === 'delete' ? 'btn-danger' : 'btn-primary']"
             @click="handleConfirmAction"
+            data-test-id="confirm-action"
           >
             {{ confirmationType === 'delete' ? 'Delete' : 'Confirm' }}
           </button>

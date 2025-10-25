@@ -11,7 +11,7 @@ const showDeleteConfirm = ref(false)
 const regionToDelete = ref<Region | null>(null)
 
 onMounted(() => {
-  regionStore.fetchRegions()
+  void regionStore.fetchRegions()
 })
 
 function handleEditRegion(region: Region) {
@@ -68,14 +68,14 @@ function handleDeleteCancel() {
     </div>
 
     <div v-if="regionStore.loading" class="loading-indicator" data-test-id="loading-indicator">
-      Loading...
+      Loading regions
     </div>
 
     <div v-else-if="regionStore.error" class="error-message" data-test-id="error-message">
       {{ regionStore.error }}
     </div>
 
-    <table v-else class="region-table">
+    <table v-else class="region-table" data-test-id="regions-table">
       <thead>
         <tr>
           <th>Name</th>
@@ -88,7 +88,7 @@ function handleDeleteCancel() {
         <tr v-if="regionStore.sortedRegions.length === 0">
           <td colspan="4" class="text-center">No regions found</td>
         </tr>
-        <tr v-for="region in regionStore.sortedRegions" :key="region.id">
+        <tr v-for="region in regionStore.sortedRegions" :key="region.id" :data-test-id="'region-row-' + region.id">
           <td>{{ region.name }}</td>
           <td>{{ region.state }}</td>
           <td>{{ region.isActive ? 'Active' : 'Inactive' }}</td>

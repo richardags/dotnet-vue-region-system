@@ -6,31 +6,7 @@ import RegionList from '../RegionList.vue'
 import { useRegionStore } from '@/stores/RegionStore'
 import type { Region } from '@/types/Region'
 
-// Mock the store actions
-vi.mock('@/stores/RegionStore', () => {
-    const mockStore = {
-        regions: [] as Region[],
-        loading: false,
-        error: null as string | null,
-        fetchRegions: vi.fn(),
-        toggleRegionActive: vi.fn(),
-        createRegion: vi.fn(),
-        updateRegion: vi.fn(),
-        get sortedRegions() {
-            return [...this.regions].sort((a, b) => {
-                // First sort by state
-                const stateCompare = a.state.localeCompare(b.state)
-                if (stateCompare !== 0) return stateCompare
-                // Then by name
-                return a.name.localeCompare(b.name)
-            })
-        }
-    }
-
-    return {
-        useRegionStore: () => mockStore
-    }
-})
+const pinia = createPinia()
 
 describe('RegionList', () => {
     let wrapper: ReturnType<typeof mount>
@@ -54,9 +30,28 @@ describe('RegionList', () => {
         }
     ]
 
-    beforeEach(() => {
-        setActivePinia(createPinia())
+    beforeEach(async () => {
+        const pinia = createPinia()
+        setActivePinia(pinia)
+        const store = useRegionStore()
+        store.loading = false
+        store.error = null
+        store.regions = []
+        // Mock store methods
+        store.fetchRegions = vi.fn().mockResolvedValue(undefined)
+        store.toggleRegionActive = vi.fn().mockResolvedValue(undefined)
+        store.createRegion = vi.fn().mockResolvedValue(undefined)
+        store.updateRegion = vi.fn().mockResolvedValue(undefined)
+        store.deleteRegion = vi.fn().mockResolvedValue(undefined)
         vi.clearAllMocks()
+
+        // Mount component with Pinia
+        wrapper = mount(RegionList, {
+            global: {
+                plugins: [pinia]
+            }
+        })
+        await nextTick()
     })
 
     describe('Component Rendering', () => {
@@ -69,15 +64,13 @@ describe('RegionList', () => {
         it('displays regions in a table format', async () => {
             const store = useRegionStore()
             store.regions = [...mockRegions]
-            wrapper = mount(RegionList)
             await nextTick()
-            await nextTick() // Additional tick for store updates
 
-            const rows = wrapper.findAll('tbody tr')
+            expect(wrapper.find('[data-test-id="regions-table"]').exists()).toBe(true)
+            const rows = wrapper.findAll('[data-test-id^="region-row-"]')
             expect(rows).toHaveLength(2)
 
             const firstRow = rows[0]
-            // Adding null checks to handle potential undefined values
             expect(firstRow?.find('td:nth-child(1)')?.text()).toBe('Test Region 1')
             expect(firstRow?.find('td:nth-child(2)')?.text()).toBe('TR')
             expect(firstRow?.find('td:nth-child(3)')?.text()).toBe('Active')
@@ -95,33 +88,46 @@ describe('RegionList', () => {
 
     describe('Loading State', () => {
         it('shows loading indicator when fetching regions', async () => {
+            const pinia = createPinia()
+            setActivePinia(pinia)
             const store = useRegionStore()
             store.loading = true
-            store.regions = []
-            store.error = null
 
-            wrapper = mount(RegionList)
+            wrapper = mount(RegionList, {
+                global: {
+                    plugins: [pinia]
+                }
+            })
             await nextTick()
 
             const loadingIndicator = wrapper.find('[data-test-id="loading-indicator"]')
             expect(loadingIndicator.exists()).toBe(true)
-            expect(loadingIndicator.text()).toBe('Loading...')
+            expect(loadingIndicator.text()).toBe('Loading regions')
         })
     })
 
     describe('Error Handling', () => {
         it('displays error message when fetch fails', async () => {
+            const pinia = createPinia()
+            setActivePinia(pinia)
             const store = useRegionStore()
+            
+            // Mount first, then set state
+            wrapper = mount(RegionList, {
+                global: {
+                    plugins: [pinia]
+                }
+            })
+            await nextTick()
+
+            // Update store state
             store.error = 'Failed to fetch regions'
             store.loading = false
-            store.regions = []
-            
-            wrapper = mount(RegionList)
             await nextTick()
 
             const errorMessage = wrapper.find('[data-test-id="error-message"]')
             expect(errorMessage.exists()).toBe(true)
-            expect(errorMessage.text()).toBe('Failed to fetch regions')
+            expect(errorMessage.text()).toBe(store.error)
         })
     })
 
@@ -136,11 +142,17 @@ describe('RegionList', () => {
         })
 
         it('opens edit form when clicking edit button', async () => {
+            wrapper = mount(RegionList)
+            const store = useRegionStore()
+            store.regions = [...mockRegions]
+            await nextTick()
+            await nextTick()
+
             const editButton = wrapper.find('[data-test-id="edit-region-1"]')
             expect(editButton.exists()).toBe(true)
             await editButton.trigger('click')
             await nextTick()
-            await nextTick()
+
             expect(wrapper.findComponent({ name: 'RegionForm' }).exists()).toBe(true)
         })
 
@@ -176,15 +188,72 @@ describe('RegionList', () => {
         })
     })
 
+    describe('Delete Region', () => {
+        beforeEach(async () => {
+            const store = useRegionStore()
+            store.regions = [...mockRegions]
+            store.error = null
+            store.loading = false
+            wrapper = mount(RegionList)
+            await nextTick()
+        })
+
+        it('shows delete confirmation dialog when clicking delete button', async () => {
+            const deleteButton = wrapper.find('[data-test-id="delete-region-1"]')
+            expect(deleteButton.exists()).toBe(true)
+            await deleteButton.trigger('click')
+            await nextTick()
+
+            const confirmDialog = wrapper.find('[data-test-id="delete-confirm-dialog"]')
+            expect(confirmDialog.exists()).toBe(true)
+            expect(confirmDialog.text()).toContain('Test Region 1')
+        })
+
+        it('cancels deletion when clicking cancel button', async () => {
+            const store = useRegionStore()
+            const deleteButton = wrapper.find('[data-test-id="delete-region-1"]')
+            await deleteButton.trigger('click')
+            await nextTick()
+
+            const cancelButton = wrapper.find('[data-test-id="delete-cancel"]')
+            expect(cancelButton.exists()).toBe(true)
+            await cancelButton.trigger('click')
+            await nextTick()
+
+            const confirmDialog = wrapper.find('[data-test-id="delete-confirm-dialog"]')
+            expect(confirmDialog.exists()).toBe(false)
+            expect(store.deleteRegion).not.toHaveBeenCalled()
+        })
+
+        it('deletes region when confirming deletion', async () => {
+            const store = useRegionStore()
+            const deleteButton = wrapper.find('[data-test-id="delete-region-1"]')
+            await deleteButton.trigger('click')
+            await nextTick()
+
+            const confirmButton = wrapper.find('[data-test-id="delete-confirm"]')
+            expect(confirmButton.exists()).toBe(true)
+            await confirmButton.trigger('click')
+            await nextTick()
+
+            expect(store.deleteRegion).toHaveBeenCalledWith(1)
+            expect(store.fetchRegions).toHaveBeenCalled()
+            
+            const confirmDialog = wrapper.find('[data-test-id="delete-confirm-dialog"]')
+            expect(confirmDialog.exists()).toBe(false)
+        })
+    })
+
     describe('Data Loading', () => {
         it('fetches regions on mount', async () => {
             const store = useRegionStore()
-            vi.mocked(store.fetchRegions).mockClear() // Clear any previous calls
+            store.fetchRegions = vi.fn().mockResolvedValue(undefined)
             
             wrapper = mount(RegionList)
-            await nextTick() // Wait for onMounted hook
+            await nextTick()
 
             expect(store.fetchRegions).toHaveBeenCalled()
+            expect(store.fetchRegions).toHaveBeenCalledTimes(1)
         })
 
         it('refreshes regions after toggling active state', async () => {

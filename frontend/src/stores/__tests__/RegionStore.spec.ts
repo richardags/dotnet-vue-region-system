@@ -10,7 +10,8 @@ vi.mock('@/services/RegionService', () => ({
         getAll: vi.fn(),
         create: vi.fn(),
         update: vi.fn(),
-        toggleActive: vi.fn()
+        toggleActive: vi.fn(),
+        delete: vi.fn()
     }
 }))
 
@@ -142,6 +143,46 @@ describe('RegionStore', () => {
 
             await expect(store.toggleRegionActive(1)).rejects.toThrow()
             expect(store.error).toBe('Failed to toggle region status')
+        })
+    })
+
+    describe('deleteRegion', () => {
+        it('should delete a region and update list', async () => {
+            // Setup initial state
+            store.regions = [
+                {
+                    id: 1,
+                    name: 'Region to Delete',
+                    state: 'RD',
+                    isActive: true,
+                    createdAt: '2025-10-25T00:00:00Z',
+                    updatedAt: null
+                },
+                {
+                    id: 2,
+                    name: 'Region to Keep',
+                    state: 'RK',
+                    isActive: true,
+                    createdAt: '2025-10-25T00:00:00Z',
+                    updatedAt: null
+                }
+            ]
+
+            vi.mocked(RegionService.delete).mockResolvedValueOnce()
+
+            await store.deleteRegion(1)
+
+            expect(RegionService.delete).toHaveBeenCalledWith(1)
+            expect(store.regions).toHaveLength(1)
+            expect(store.regions[0]?.id).toBe(2)
+            expect(store.error).toBeNull()
+        })
+
+        it('should handle delete error', async () => {
+            vi.mocked(RegionService.delete).mockRejectedValueOnce(new Error('Delete failed'))
+
+            await expect(store.deleteRegion(1)).rejects.toThrow()
+            expect(store.error).toBe('Failed to delete region')
         })
     })
 })

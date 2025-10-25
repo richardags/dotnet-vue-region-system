@@ -134,4 +134,34 @@ describe('RegionService', () => {
             await expect(RegionService.toggleActive(1)).rejects.toThrow('Failed to toggle region status')
         })
     })
+
+    describe('delete', () => {
+        it('should delete a region', async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: true
+            })
+
+            await RegionService.delete(1)
+            expect(mockFetch).toHaveBeenCalledWith(
+                'http://localhost:5000/api/regions/1',
+                expect.objectContaining({
+                    method: 'DELETE'
+                })
+            )
+        })
+
+        it('should throw error when delete fails', async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: false
+            })
+
+            await expect(RegionService.delete(1)).rejects.toThrow('Failed to delete region')
+            expect(mockFetch).toHaveBeenCalledWith(
+                'http://localhost:5000/api/regions/1',
+                expect.objectContaining({
+                    method: 'DELETE'
+                })
+            )
+        })
+    })
 })
