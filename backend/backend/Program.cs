@@ -1,4 +1,5 @@
 using backend.Data;
+using backend.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace backend
@@ -15,6 +16,8 @@ namespace backend
                     builder.Configuration.GetConnectionString("DefaultConnection")
                 )
             );
+
+            builder.Services.AddScoped<IRegionService, RegionService>();
 
             builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
