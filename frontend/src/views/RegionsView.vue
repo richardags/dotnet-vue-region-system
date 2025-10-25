@@ -2,13 +2,14 @@
 import { ref, onMounted } from 'vue'
 import { useRegionStore } from '@/stores/RegionStore'
 import RegionForm from '@/components/RegionForm.vue'
+import RegionList from '@/components/RegionList.vue'
 import type { Region } from '@/types/Region'
 
 const regionStore = useRegionStore()
 const showForm = ref(false)
 const selectedRegion = ref<Region | null>(null)
 const showConfirmDialog = ref(false)
-const showDeleteDialog = ref(false)
+
 const regionToToggle = ref<number | null>(null)
 const regionToDelete = ref<Region | null>(null)
 const confirmationType = ref<'toggle' | 'delete'>('toggle')
@@ -32,24 +33,14 @@ function closeForm() {
   selectedRegion.value = null
 }
 
-function confirmToggleActive(region: Region) {
-  regionToToggle.value = region.id
-  confirmationType.value = 'toggle'
-  showConfirmDialog.value = true
-}
-
-function confirmDeleteRegion(region: Region) {
-  regionToDelete.value = region
-  confirmationType.value = 'delete'
-  showConfirmDialog.value = true
-}
-
 async function handleConfirmAction() {
   try {
     if (confirmationType.value === 'toggle' && regionToToggle.value !== null) {
       await regionStore.toggleRegionActive(regionToToggle.value)
+      await regionStore.fetchRegions() // Ensure data is refreshed
     } else if (confirmationType.value === 'delete' && regionToDelete.value !== null) {
       await regionStore.deleteRegion(regionToDelete.value.id)
+      await regionStore.fetchRegions() // Ensure data is refreshed
     }
   } finally {
     showConfirmDialog.value = false
@@ -57,15 +48,24 @@ async function handleConfirmAction() {
     regionToDelete.value = null
   }
 }
+
+async function handleToggleRegion(region: Region) {
+  regionToToggle.value = region.id
+  confirmationType.value = 'toggle'
+  showConfirmDialog.value = true
+}
+
+async function handleDeleteRegion(region: Region) {
+  regionToDelete.value = region
+  confirmationType.value = 'delete'
+  showConfirmDialog.value = true
+}
 </script>
 
 <template>
   <div class="regions">
     <div class="regions-header">
       <h2 class="section-title">Regions List</h2>
-      <button class="btn btn-primary" @click="openCreateForm">
-        <span class="icon">+</span> Add Region
-      </button>
     </div>
 
     <template v-if="regionStore.loading">
@@ -83,63 +83,12 @@ async function handleConfirmAction() {
     </template>
     
     <template v-else>
-      <div v-if="regionStore.sortedRegions.length" class="regions-content" data-test-id="regions-table-container">
-        <table class="table" data-test-id="regions-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>State</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="region in regionStore.sortedRegions" :key="region.id" :data-test-id="'region-row-' + region.id">
-              <td>{{ region.name }}</td>
-              <td>{{ region.state }}</td>
-              <td>
-                <span :class="['badge', region.isActive ? 'badge-success' : 'badge-danger']">
-                  {{ region.isActive ? 'Active' : 'Inactive' }}
-                </span>
-              </td>
-              <td class="actions-column">
-                <button 
-                  class="btn btn-secondary" 
-                  @click="openEditForm(region)"
-                  :data-test-id="'edit-region-' + region.id"
-                >
-                  Edit
-                </button>
-                <button 
-                  @click="confirmToggleActive(region)"
-                  :class="['btn', region.isActive ? 'btn-danger' : 'btn-secondary']"
-                  :data-test-id="'toggle-region-' + region.id"
-                >
-                  {{ region.isActive ? 'Inactivate' : 'Activate' }}
-                </button>
-                <button 
-                  class="btn btn-outline-danger" 
-                  @click="confirmDeleteRegion(region)"
-                  :data-test-id="'delete-region-' + region.id"
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div v-else class="card empty-state">
-        <span class="icon">📝</span>
-        <p>No regions found. Add your first region to get started.</p>
-        <button 
-          class="btn btn-primary"
-          @click="openCreateForm"
-          data-test-id="create-region"
-        >
-          Add Region
-        </button>
-      </div>
+      <RegionList
+        @edit="openEditForm"
+        @toggle="handleToggleRegion"
+        @delete="handleDeleteRegion"
+        @add="openCreateForm"
+      />
     </template>
 
     <!-- Region Form Modal -->

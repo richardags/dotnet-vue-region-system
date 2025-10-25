@@ -8,7 +8,9 @@ export const useRegionStore = defineStore('region', {
         loading: false,
         error: null as string | null,
         searchQuery: '',
-        filterActive: null as boolean | null
+        filterActive: null as boolean | null,
+        sortField: 'state' as 'name' | 'state' | 'isActive',
+        sortDirection: 'asc' as 'asc' | 'desc'
     }),
     
     getters: {
@@ -17,7 +19,7 @@ export const useRegionStore = defineStore('region', {
                 return []
             }
 
-            return state.regions.filter(region => {
+            const filtered = state.regions.filter(region => {
                 // Search query filter
                 const searchMatch = !state.searchQuery || 
                     region.name.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
@@ -28,63 +30,55 @@ export const useRegionStore = defineStore('region', {
 
                 return searchMatch && activeMatch
             })
+
+            return filtered
         },
         sortedRegions: (state) => {
-            const store = useRegionStore()
-            return [...store.filteredRegions].sort((a, b) => {
-                // Ensure both objects have the required properties
-                if (!a || !b || !a.state || !b.state || !a.name || !b.name) {
-                    return 0
+            // First filter the regions
+            const filtered = state.regions.filter(region => {
+                // Search query filter
+                const searchMatch = !state.searchQuery || 
+                    region.name.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
+                    region.state.toLowerCase().includes(state.searchQuery.toLowerCase())
+
+                // Active status filter
+                const activeMatch = state.filterActive === null || region.isActive === state.filterActive
+
+                return searchMatch && activeMatch
+            })
+
+            // Then sort the filtered results
+            return filtered.sort((a, b) => {
+                const direction = state.sortDirection === 'asc' ? 1 : -1
+                
+                switch (state.sortField) {
+                    case 'name':
+                        return direction * a.name.localeCompare(b.name)
+                    case 'state':
+                        return direction * a.state.localeCompare(b.state)
+                    case 'isActive':
+                        return direction * (Number(a.isActive) - Number(b.isActive))
+                    default:
+                        return 0
                 }
-                // Sort by state first
-                const stateCompare = a.state.localeCompare(b.state)
-                if (stateCompare !== 0) return stateCompare
-                // If states are equal, sort by region name
-                return a.name.localeCompare(b.name)
             })
         }
     },
     
     actions: {
         async fetchRegions() {
+            if (this.loading) return // Prevent multiple simultaneous requests
+            
             this.loading = true
             this.error = null
+            
             try {
                 const response = await RegionService.getAll()
-                console.log('API Response:', response)  // Debug log
-                
-                // Validate that we received an array
-                if (!Array.isArray(response)) {
-                    console.warn('Response is not an array:', response)  // Debug log
-                    throw new Error('Invalid response format')
-                }
-                
-                // Log before filtering
-                console.log('Before filtering:', response.length, 'items')  // Debug log
-                
-                // Validate each region object
-                this.regions = response.filter(region => {
-                    const isValid = region &&
-                        typeof region.id === 'number' &&
-                        typeof region.name === 'string' &&
-                        typeof region.state === 'string' &&
-                        typeof region.isActive === 'boolean' &&
-                        typeof region.createdAt === 'string' &&
-                        (region.updatedAt === null || typeof region.updatedAt === 'string')
-                    
-                    if (!isValid) {
-                        console.warn('Invalid region object:', region)  // Debug log
-                    }
-                    return isValid
-                })
-                
-                // Log after filtering
-                console.log('After filtering:', this.regions.length, 'items')  // Debug log
-                console.log('Filtered regions:', this.regions)  // Debug log
+                this.regions = response
             } catch (error) {
-                this.error = 'Failed to fetch regions'
-                console.error('Fetch error:', error)  // Debug log
-                this.regions = [] // Reset to empty array on error
+                console.error('Failed to fetch regions:', error)
+                this.error = error instanceof Error ? error.message : 'Failed to fetch regions'
+                this.regions = []
             } finally {
                 this.loading = false
             }
@@ -130,7 +124,11 @@ export const useRegionStore = defineStore('region', {
             this.error = null
             try {
                 await RegionService.toggleActive(id)
-                await this.fetchRegions() // Refetch all regions to get updated state
+                // Update local state immediately
+                const region = this.regions.find(r => r.id === id)
+                if (region) {
+                    region.isActive = !region.isActive
+                }
             } catch (error) {
                 this.error = 'Failed to toggle region status'
                 console.error(error)

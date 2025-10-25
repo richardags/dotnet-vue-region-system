@@ -3,13 +3,20 @@ import api from './api'
 
 export const RegionService = {
     async getAll(): Promise<Region[]> {
-        const response = await fetch(`${api.API_BASE_URL}/regions`)
-        if (!response.ok) {
-            throw new Error('Failed to fetch regions')
+        try {
+            const response = await fetch(`${api.API_BASE_URL}/regions`)
+            if (!response.ok) {
+                throw new Error(`Failed to fetch regions: ${response.status} ${response.statusText}`)
+            }
+            const data = await response.json()
+            if (!Array.isArray(data)) {
+                throw new Error('Invalid response format: expected an array')
+            }
+            return data
+        } catch (error) {
+            console.error('Error fetching regions:', error)
+            throw error
         }
-        const data = await response.json()
-        console.log('RegionService response:', data)  // Debug log
-        return data
     },
 
     async create(region: CreateRegionDto): Promise<Region> {

@@ -2,16 +2,12 @@
 import { ref, watch } from 'vue'
 import { useRegionStore } from '@/stores/RegionStore'
 
-const props = defineProps({
-  region: {
-    type: Object,
-    default: null
-  },
-  onClose: {
-    type: Function,
-    required: true
-  }
-})
+import type { Region } from '@/types/Region'
+
+const props = defineProps<{
+  region: Region | null
+  onClose: () => void
+}>()
 
 const emit = defineEmits(['close'])
 
@@ -57,7 +53,7 @@ async function handleSubmit() {
     resetForm()
     emit('close')
   } catch (e) {
-    error.value = e.message || 'Failed to save region.'
+    error.value = (e instanceof Error ? e.message : 'Failed to save region.')
   } finally {
     loading.value = false
   }
@@ -103,7 +99,7 @@ function resetForm() {
           style="text-transform: uppercase;"
           :disabled="loading"
           data-test-id="region-state-input"
-          @input="state = $event.target.value.toUpperCase()"
+          @input="state = ($event.target as HTMLInputElement).value.toUpperCase()"
         >
       </div>
 

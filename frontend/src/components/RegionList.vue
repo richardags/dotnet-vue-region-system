@@ -1,56 +1,30 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted } from 'vue'
 import { useRegionStore } from '@/stores/RegionStore'
-import RegionForm from './RegionForm.vue'
 import type { Region } from '@/types/Region'
 
 const regionStore = useRegionStore()
-const selectedRegion = ref<Region | null>(null)
-const showForm = ref(false)
-const showDeleteConfirm = ref(false)
-const regionToDelete = ref<Region | null>(null)
 
-onMounted(() => {
-  void regionStore.fetchRegions()
+onMounted(async () => {
+  if (!regionStore.regions.length && !regionStore.loading) {
+    await regionStore.fetchRegions()
+  }
 })
 
-function handleEditRegion(region: Region) {
-  selectedRegion.value = region
-  showForm.value = true
-}
+const emit = defineEmits<{
+  (e: 'edit', region: Region): void
+  (e: 'toggle', region: Region): void
+  (e: 'delete', region: Region): void
+  (e: 'add'): void
+}>()
 
-function handleAddRegion() {
-  selectedRegion.value = null
-  showForm.value = true
-}
-
-function handleCloseForm() {
-  showForm.value = false
-  selectedRegion.value = null
-}
-
-async function handleToggleActive(region: Region) {
-  await regionStore.toggleRegionActive(region.id)
-  await regionStore.fetchRegions()
-}
-
-function handleDeleteClick(region: Region) {
-  regionToDelete.value = region
-  showDeleteConfirm.value = true
-}
-
-async function handleDeleteConfirm() {
-  if (regionToDelete.value) {
-    await regionStore.deleteRegion(regionToDelete.value.id)
-    await regionStore.fetchRegions()
-    showDeleteConfirm.value = false
-    regionToDelete.value = null
+function handleSort(field: 'name' | 'state' | 'isActive') {
+  if (regionStore.sortField === field) {
+    regionStore.sortDirection = regionStore.sortDirection === 'asc' ? 'desc' : 'asc'
+  } else {
+    regionStore.sortField = field
+    regionStore.sortDirection = 'asc'
   }
-}
-
-function handleDeleteCancel() {
-  showDeleteConfirm.value = false
-  regionToDelete.value = null
 }
 </script>
 
@@ -83,7 +57,7 @@ function handleDeleteCancel() {
         </div>
         <button 
           class="btn btn-primary" 
-          @click="handleAddRegion"
+          @click="emit('add')"
           data-test-id="add-region"
         >
           Add Region
@@ -92,19 +66,48 @@ function handleDeleteCancel() {
     </div>
 
     <div v-if="regionStore.loading" class="loading-indicator" data-test-id="loading-indicator">
-      Loading regions
+      Loading regions...
+      <div class="loading-spinner"></div>
     </div>
 
     <div v-else-if="regionStore.error" class="error-message" data-test-id="error-message">
+      <span class="icon">⚠️</span>
       {{ regionStore.error }}
     </div>
 
     <table v-else class="region-table" data-test-id="regions-table">
       <thead>
         <tr>
-          <th>Name</th>
-          <th>State</th>
-          <th>Status</th>
+          <th 
+            class="sortable"
+            :class="{ sorted: regionStore.sortField === 'name' }"
+            @click="handleSort('name')"
+          >
+            Name
+            <span class="sort-icon">
+              {{ regionStore.sortField === 'name' ? (regionStore.sortDirection === 'asc' ? '↑' : '↓') : '↕' }}
+            </span>
+          </th>
+          <th 
+            class="sortable"
+            :class="{ sorted: regionStore.sortField === 'state' }"
+            @click="handleSort('state')"
+          >
+            State
+            <span class="sort-icon">
+              {{ regionStore.sortField === 'state' ? (regionStore.sortDirection === 'asc' ? '↑' : '↓') : '↕' }}
+            </span>
+          </th>
+          <th 
+            class="sortable"
+            :class="{ sorted: regionStore.sortField === 'isActive' }"
+            @click="handleSort('isActive')"
+          >
+            Status
+            <span class="sort-icon">
+              {{ regionStore.sortField === 'isActive' ? (regionStore.sortDirection === 'asc' ? '↑' : '↓') : '↕' }}
+            </span>
+          </th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -115,12 +118,16 @@ function handleDeleteCancel() {
         <tr v-for="region in regionStore.sortedRegions" :key="region.id" :data-test-id="'region-row-' + region.id">
           <td>{{ region.name }}</td>
           <td>{{ region.state }}</td>
-          <td>{{ region.isActive ? 'Active' : 'Inactive' }}</td>
+          <td>
+            <span :class="['badge', region.isActive ? 'badge-success' : 'badge-danger']">
+              {{ region.isActive ? 'Active' : 'Inactive' }}
+            </span>
+          </td>
           <td>
             <div class="action-buttons">
               <button 
                 class="btn btn-sm btn-secondary"
-                @click="handleEditRegion(region)"
+                @click="emit('edit', region)"
                 :data-test-id="'edit-region-' + region.id"
               >
                 Edit
@@ -128,14 +135,14 @@ function handleDeleteCancel() {
               <button 
                 class="btn btn-sm"
                 :class="region.isActive ? 'btn-danger' : 'btn-success'"
-                @click="handleToggleActive(region)"
+                @click="emit('toggle', region)"
                 :data-test-id="'toggle-region-' + region.id"
               >
                 {{ region.isActive ? 'Inactivate' : 'Activate' }}
               </button>
               <button 
                 class="btn btn-sm btn-outline-danger"
-                @click="handleDeleteClick(region)"
+                @click="emit('delete', region)"
                 :data-test-id="'delete-region-' + region.id"
               >
                 Delete
@@ -145,38 +152,6 @@ function handleDeleteCancel() {
         </tr>
       </tbody>
     </table>
-
-    <RegionForm
-      v-if="showForm"
-      :region="selectedRegion"
-      :onClose="handleCloseForm"
-    />
-
-    <div v-if="showDeleteConfirm" class="modal-overlay">
-      <div class="modal-content" data-test-id="delete-confirm-dialog">
-        <h3>Confirm Delete</h3>
-        <p>
-          Are you sure you want to delete the region "{{ regionToDelete?.name }}"?
-          This action cannot be undone.
-        </p>
-        <div class="modal-actions">
-          <button 
-            class="btn btn-secondary" 
-            @click="handleDeleteCancel"
-            data-test-id="delete-cancel"
-          >
-            Cancel
-          </button>
-          <button 
-            class="btn btn-danger" 
-            @click="handleDeleteConfirm"
-            data-test-id="delete-confirm"
-          >
-            Delete
-          </button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -234,6 +209,54 @@ function handleDeleteCancel() {
 .region-table th {
   font-weight: 600;
   background-color: var(--color-background-soft);
+  padding: 0.75rem;
+  transition: background-color 0.2s ease;
+}
+
+.region-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  padding-right: 2rem !important;
+}
+
+.region-table th.sortable:hover {
+  background-color: var(--color-background-mute);
+}
+
+.region-table th.sorted {
+  background-color: var(--color-background-mute);
+}
+
+.th-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: space-between;
+  padding-right: 1.5rem;
+  position: relative;
+}
+
+.sort-icon {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-block;
+  font-size: 1rem;
+  font-weight: bold;
+  opacity: 0.5;
+  color: var(--color-text);
+  margin-left: 0.5rem;
+}
+
+th.sorted .sort-icon {
+  opacity: 1;
+  color: var(--color-primary);
+}
+
+.region-table th.sortable:hover .sort-icon {
+  opacity: 1;
 }
 
 .action-buttons {
