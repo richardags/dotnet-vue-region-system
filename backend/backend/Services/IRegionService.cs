@@ -11,5 +11,6 @@ namespace backend.Services
         Task<Region?> UpdateRegionAsync(int id, RegionDto regionDto);
         Task<bool> ToggleRegionStatusAsync(int id);
         Task<bool> RegionExistsAsync(string name, string state, int? excludeId = null);
+        Task<bool> DeleteRegionAsync(int id);
     }
 }

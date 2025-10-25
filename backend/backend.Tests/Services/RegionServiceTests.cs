@@ -141,5 +141,44 @@ namespace backend.Tests.Services
             Assert.Equal(updateDto.State, result.State);
             Assert.NotNull(result.UpdatedAt);
         }
+
+        [Fact]
+        public async Task DeleteRegionAsync_ValidId_DeletesRegionAndReturnsTrue()
+        {
+            // Arrange
+            var context = GetDbContext();
+            var service = new RegionService(context);
+            var region = new Region
+            {
+                Name = "Region To Delete",
+                State = "NY",
+                IsActive = true
+            };
+            context.Regions.Add(region);
+            await context.SaveChangesAsync();
+            var regionId = region.Id;
+
+            // Act
+            var result = await service.DeleteRegionAsync(regionId);
+            var deletedRegion = await context.Regions.FindAsync(regionId);
+
+            // Assert
+            Assert.True(result);
+            Assert.Null(deletedRegion);
+        }
+
+        [Fact]
+        public async Task DeleteRegionAsync_NonExistentId_ReturnsFalse()
+        {
+            // Arrange
+            var context = GetDbContext();
+            var service = new RegionService(context);
+
+            // Act
+            var result = await service.DeleteRegionAsync(999);
+
+            // Assert
+            Assert.False(result);
+        }
     }
 }
