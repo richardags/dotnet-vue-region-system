@@ -11,39 +11,61 @@ onMounted(async () => {
 
 <template>
   <div class="regions">
-    <div v-if="regionStore.loading" class="loading">
-      Loading regions...
+    <div class="regions-header">
+      <h2 class="section-title">Regions List</h2>
+      <button class="btn btn-primary">
+        <span class="icon">+</span> Add Region
+      </button>
+    </div>
+
+    <div v-if="regionStore.loading" class="card loading-card">
+      <div class="loading-spinner"></div>
+      <p>Loading regions...</p>
     </div>
     
-    <div v-else-if="regionStore.error" class="error">
-      {{ regionStore.error }}
+    <div v-else-if="regionStore.error" class="card error-card">
+      <span class="icon">⚠️</span>
+      <p>{{ regionStore.error }}</p>
     </div>
     
     <div v-else class="regions-content">
-      <h2>Regions List</h2>
-      <table v-if="regionStore.sortedRegions.length">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>State</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="region in regionStore.sortedRegions" :key="region.id">
-            <td>{{ region.name }}</td>
-            <td>{{ region.state }}</td>
-            <td>{{ region.isActive ? 'Active' : 'Inactive' }}</td>
-            <td>
-              <button @click="regionStore.toggleRegionActive(region.id)">
-                {{ region.isActive ? 'Inactivate' : 'Activate' }}
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <p v-else>No regions found.</p>
+      <div class="card" v-if="regionStore.sortedRegions.length">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>State</th>
+              <th>Status</th>
+              <th class="actions-column">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="region in regionStore.sortedRegions" :key="region.id">
+              <td>{{ region.name }}</td>
+              <td>{{ region.state }}</td>
+              <td>
+                <span :class="['badge', region.isActive ? 'badge-success' : 'badge-danger']">
+                  {{ region.isActive ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              <td class="actions-column">
+                <button 
+                  @click="regionStore.toggleRegionActive(region.id)"
+                  :class="['btn', region.isActive ? 'btn-danger' : 'btn-secondary']"
+                >
+                  {{ region.isActive ? 'Inactivate' : 'Activate' }}
+                </button>
+                <button class="btn btn-secondary">Edit</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div v-else class="card empty-state">
+        <span class="icon">📝</span>
+        <p>No regions found. Add your first region to get started.</p>
+        <button class="btn btn-primary">Add Region</button>
+      </div>
     </div>
   </div>
 </template>
@@ -53,45 +75,65 @@ onMounted(async () => {
   width: 100%;
 }
 
-.loading, .error {
+.regions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.loading-card,
+.error-card,
+.empty-state {
   text-align: center;
-  padding: 2rem;
+  padding: 3rem !important;
 }
 
-.error {
-  color: red;
+.loading-spinner {
+  display: inline-block;
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--color-border);
+  border-radius: 50%;
+  border-top-color: var(--color-primary);
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
 }
 
-.regions-content {
-  margin-top: 1rem;
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1rem;
+.error-card {
+  color: var(--color-danger);
 }
 
-th, td {
-  padding: 0.75rem;
-  text-align: left;
-  border-bottom: 1px solid var(--color-border);
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
 }
 
-th {
-  font-weight: bold;
-  background-color: var(--color-background);
+.icon {
+  font-size: 1.5rem;
+  margin-right: 0.5rem;
 }
 
-button {
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  background-color: var(--color-background);
-  border: 1px solid var(--color-border);
-  cursor: pointer;
+.actions-column {
+  text-align: right;
+  min-width: 200px;
 }
 
-button:hover {
-  background-color: var(--color-background-soft);
+.actions-column .btn {
+  margin-left: 0.5rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>
