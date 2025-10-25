@@ -82,5 +82,16 @@ namespace backend.Services
 
             return await query.AnyAsync();
         }
+
+        public async Task<bool> DeleteRegionAsync(int id)
+        {
+            var region = await _context.Regions.FindAsync(id);
+            if (region == null)
+                return false;
+
+            _context.Regions.Remove(region);
+            await _context.SaveChangesAsync();
+            return true;
+        }
     }
 }

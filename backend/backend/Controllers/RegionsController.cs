@@ -103,5 +103,22 @@ namespace backend.Controllers
 
             return Ok();
         }
+
+        /// <summary>
+        /// Delete a specific region
+        /// </summary>
+        /// <param name="id">The ID of the region to delete</param>
+        /// <returns>No content if successful, NotFound if region doesn't exist</returns>
+        [HttpDelete("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeleteRegion(int id)
+        {
+            var success = await _regionService.DeleteRegionAsync(id);
+            if (!success)
+                return NotFound();
+
+            return NoContent();
+        }
     }
 }
