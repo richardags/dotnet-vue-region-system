@@ -112,11 +112,8 @@ export const useRegionStore = defineStore('region', {
             this.loading = true
             this.error = null
             try {
-                const updatedRegion = await RegionService.toggleActive(id)
-                const index = this.regions.findIndex((r: Region) => r.id === id)
-                if (index !== -1) {
-                    this.regions[index] = updatedRegion
-                }
+                await RegionService.toggleActive(id)
+                await this.fetchRegions() // Refetch all regions to get updated state
             } catch (error) {
                 this.error = 'Failed to toggle region status'
                 console.error(error)

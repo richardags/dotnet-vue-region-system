@@ -40,9 +40,9 @@ export const RegionService = {
         return response.json()
     },
 
-    async toggleActive(id: number): Promise<Region> {
-        const response = await fetch(`${api.API_BASE_URL}/regions/${id}/toggle-active`, {
-            method: 'PUT',
+    async toggleActive(id: number): Promise<void> {
+        const response = await fetch(`${api.API_BASE_URL}/regions/${id}/toggle-status`, {
+            method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json'
             }
@@ -50,6 +50,5 @@ export const RegionService = {
         if (!response.ok) {
             throw new Error('Failed to toggle region status')
         }
-        return response.json()
     }
 }

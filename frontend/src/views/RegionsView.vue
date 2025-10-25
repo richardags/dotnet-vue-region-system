@@ -1,19 +1,53 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRegionStore } from '@/stores/RegionStore'
+import RegionForm from '@/components/RegionForm.vue'
+import type { Region } from '@/types/Region'
 
 const regionStore = useRegionStore()
+const showForm = ref(false)
+const selectedRegion = ref<Region | null>(null)
+const showConfirmDialog = ref(false)
+const regionToToggle = ref<number | null>(null)
 
 onMounted(async () => {
   await regionStore.fetchRegions()
 })
+
+function openCreateForm() {
+  selectedRegion.value = null
+  showForm.value = true
+}
+
+function openEditForm(region: Region) {
+  selectedRegion.value = region
+  showForm.value = true
+}
+
+function closeForm() {
+  showForm.value = false
+  selectedRegion.value = null
+}
+
+function confirmToggleActive(region: Region) {
+  regionToToggle.value = region.id
+  showConfirmDialog.value = true
+}
+
+async function handleToggleActive() {
+  if (regionToToggle.value !== null) {
+    await regionStore.toggleRegionActive(regionToToggle.value)
+    showConfirmDialog.value = false
+    regionToToggle.value = null
+  }
+}
 </script>
 
 <template>
   <div class="regions">
     <div class="regions-header">
       <h2 class="section-title">Regions List</h2>
-      <button class="btn btn-primary">
+      <button class="btn btn-primary" @click="openCreateForm">
         <span class="icon">+</span> Add Region
       </button>
     </div>
@@ -50,12 +84,14 @@ onMounted(async () => {
               </td>
               <td class="actions-column">
                 <button 
-                  @click="regionStore.toggleRegionActive(region.id)"
+                  @click="confirmToggleActive(region)"
                   :class="['btn', region.isActive ? 'btn-danger' : 'btn-secondary']"
                 >
                   {{ region.isActive ? 'Inactivate' : 'Activate' }}
                 </button>
-                <button class="btn btn-secondary">Edit</button>
+                <button class="btn btn-secondary" @click="openEditForm(region)">
+                  Edit
+                </button>
               </td>
             </tr>
           </tbody>
@@ -65,6 +101,30 @@ onMounted(async () => {
         <span class="icon">📝</span>
         <p>No regions found. Add your first region to get started.</p>
         <button class="btn btn-primary">Add Region</button>
+      </div>
+    </div>
+
+    <!-- Region Form Modal -->
+    <div v-if="showForm" class="modal-overlay">
+      <RegionForm
+        :region="selectedRegion"
+        :onClose="closeForm"
+      />
+    </div>
+
+    <!-- Confirmation Dialog -->
+    <div v-if="showConfirmDialog" class="modal-overlay">
+      <div class="card confirmation-dialog">
+        <h3>Confirm Action</h3>
+        <p>Are you sure you want to {{ regionStore.regions.find(r => r.id === regionToToggle)?.isActive ? 'inactivate' : 'activate' }} this region?</p>
+        <div class="dialog-actions">
+          <button class="btn btn-secondary" @click="showConfirmDialog = false">
+            Cancel
+          </button>
+          <button class="btn btn-primary" @click="handleToggleActive">
+            Confirm
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -135,5 +195,35 @@ onMounted(async () => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.confirmation-dialog {
+  max-width: 400px;
+  text-align: center;
+}
+
+.confirmation-dialog h3 {
+  color: var(--color-heading);
+  margin-bottom: 1rem;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
 }
 </style>
