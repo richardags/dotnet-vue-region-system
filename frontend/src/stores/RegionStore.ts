@@ -6,15 +6,32 @@ export const useRegionStore = defineStore('region', {
     state: () => ({
         regions: [] as Region[],
         loading: false,
-        error: null as string | null
+        error: null as string | null,
+        searchQuery: '',
+        filterActive: null as boolean | null
     }),
     
     getters: {
-        sortedRegions: (state) => {
+        filteredRegions: (state) => {
             if (!state.regions || !Array.isArray(state.regions) || state.regions.length === 0) {
                 return []
             }
-            return [...state.regions].sort((a, b) => {
+
+            return state.regions.filter(region => {
+                // Search query filter
+                const searchMatch = !state.searchQuery || 
+                    region.name.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
+                    region.state.toLowerCase().includes(state.searchQuery.toLowerCase())
+
+                // Active status filter
+                const activeMatch = state.filterActive === null || region.isActive === state.filterActive
+
+                return searchMatch && activeMatch
+            })
+        },
+        sortedRegions: (state) => {
+            const store = useRegionStore()
+            return [...store.filteredRegions].sort((a, b) => {
                 // Ensure both objects have the required properties
                 if (!a || !b || !a.state || !b.state || !a.name || !b.name) {
                     return 0

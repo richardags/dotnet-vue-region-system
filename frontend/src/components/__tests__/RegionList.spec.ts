@@ -54,6 +54,39 @@ describe('RegionList', () => {
         await nextTick()
     })
 
+    describe('Search and Filter', () => {
+        beforeEach(async () => {
+            const store = useRegionStore()
+            store.regions = [...mockRegions]
+            wrapper = mount(RegionList)
+            await nextTick()
+        })
+
+        it('allows searching regions', async () => {
+            const store = useRegionStore()
+            const searchInput = wrapper.find('[data-test-id="search-input"]')
+            expect(searchInput.exists()).toBe(true)
+
+            await searchInput.setValue('Test Region 1')
+            expect(store.searchQuery).toBe('Test Region 1')
+        })
+
+        it('allows filtering by status', async () => {
+            const store = useRegionStore()
+            const statusFilter = wrapper.find('[data-test-id="status-filter"]')
+            expect(statusFilter.exists()).toBe(true)
+
+            await statusFilter.setValue('true')
+            expect(store.filterActive).toBe(true)
+
+            await statusFilter.setValue('false')
+            expect(store.filterActive).toBe(false)
+
+            await statusFilter.setValue('')
+            expect(store.filterActive).toBe(null)
+        })
+    })
+
     describe('Component Rendering', () => {
         it('renders the component with correct title', async () => {
             wrapper = mount(RegionList)

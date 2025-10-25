@@ -21,7 +21,71 @@ describe('RegionStore', () => {
     beforeEach(() => {
         setActivePinia(createPinia())
         store = useRegionStore()
+        store.searchQuery = ''
+        store.filterActive = null
         vi.clearAllMocks()
+    })
+
+    describe('filtering and sorting', () => {
+        const testRegions = [
+            {
+                id: 1,
+                name: 'Test Region A',
+                state: 'TA',
+                isActive: true,
+                createdAt: '2025-10-25T00:00:00Z',
+                updatedAt: null
+            },
+            {
+                id: 2,
+                name: 'Another Region',
+                state: 'AR',
+                isActive: false,
+                createdAt: '2025-10-25T00:00:00Z',
+                updatedAt: null
+            }
+        ]
+
+        beforeEach(() => {
+            store.regions = testRegions
+        })
+
+        it('should filter regions by search query', () => {
+            store.searchQuery = 'test'
+            expect(store.filteredRegions).toHaveLength(1)
+            expect(store.filteredRegions[0].name).toBe('Test Region A')
+
+            store.searchQuery = 'ar'
+            expect(store.filteredRegions).toHaveLength(1)
+            expect(store.filteredRegions[0].name).toBe('Another Region')
+
+            store.searchQuery = ''
+            expect(store.filteredRegions).toHaveLength(2)
+        })
+
+        it('should filter regions by active status', () => {
+            store.filterActive = true
+            expect(store.filteredRegions).toHaveLength(1)
+            expect(store.filteredRegions[0].isActive).toBe(true)
+
+            store.filterActive = false
+            expect(store.filteredRegions).toHaveLength(1)
+            expect(store.filteredRegions[0].isActive).toBe(false)
+
+            store.filterActive = null
+            expect(store.filteredRegions).toHaveLength(2)
+        })
+
+        it('should combine search and status filters', () => {
+            store.searchQuery = 'test'
+            store.filterActive = true
+            expect(store.filteredRegions).toHaveLength(1)
+            expect(store.filteredRegions[0].name).toBe('Test Region A')
+            expect(store.filteredRegions[0].isActive).toBe(true)
+
+            store.filterActive = false
+            expect(store.filteredRegions).toHaveLength(0)
+        })
     })
 
     describe('fetchRegions', () => {

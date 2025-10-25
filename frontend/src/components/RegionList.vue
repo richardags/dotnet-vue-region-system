@@ -58,13 +58,37 @@ function handleDeleteCancel() {
   <div class="region-list">
     <div class="list-header">
       <h2>Regions</h2>
-      <button 
-        class="btn btn-primary" 
-        @click="handleAddRegion"
-        data-test-id="add-region"
-      >
-        Add Region
-      </button>
+      <div class="list-controls">
+        <div class="search-filter-group">
+          <div class="search-box">
+            <input
+              type="text"
+              placeholder="Search by name or state..."
+              v-model="regionStore.searchQuery"
+              class="form-input"
+              data-test-id="search-input"
+            >
+          </div>
+          <div class="status-filter">
+            <select 
+              v-model="regionStore.filterActive"
+              class="form-input"
+              data-test-id="status-filter"
+            >
+              <option :value="null">All Status</option>
+              <option :value="true">Active</option>
+              <option :value="false">Inactive</option>
+            </select>
+          </div>
+        </div>
+        <button 
+          class="btn btn-primary" 
+          @click="handleAddRegion"
+          data-test-id="add-region"
+        >
+          Add Region
+        </button>
+      </div>
     </div>
 
     <div v-if="regionStore.loading" class="loading-indicator" data-test-id="loading-indicator">
@@ -163,14 +187,35 @@ function handleDeleteCancel() {
 
 .list-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 1rem;
   margin-bottom: 1.5rem;
 }
 
 .list-header h2 {
   margin: 0;
   color: var(--color-heading);
+}
+
+.list-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.search-filter-group {
+  display: flex;
+  gap: 1rem;
+  flex-grow: 1;
+}
+
+.search-box {
+  flex-grow: 1;
+}
+
+.status-filter {
+  width: 150px;
 }
 
 .region-table {
