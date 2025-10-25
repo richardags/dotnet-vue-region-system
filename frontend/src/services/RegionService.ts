@@ -7,7 +7,9 @@ export const RegionService = {
         if (!response.ok) {
             throw new Error('Failed to fetch regions')
         }
-        return response.json()
+        const data = await response.json()
+        console.log('RegionService response:', data)  // Debug log
+        return data
     },
 
     async create(region: CreateRegionDto): Promise<Region> {

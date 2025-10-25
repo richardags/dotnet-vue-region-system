@@ -11,11 +11,18 @@ export const useRegionStore = defineStore('region', {
     
     getters: {
         sortedRegions: (state) => {
+            if (!state.regions || !Array.isArray(state.regions) || state.regions.length === 0) {
+                return []
+            }
             return [...state.regions].sort((a, b) => {
-                // First sort by UF
-                const ufCompare = a.uf.localeCompare(b.uf)
-                if (ufCompare !== 0) return ufCompare
-                // Then sort by name
+                // Ensure both objects have the required properties
+                if (!a || !b || !a.state || !b.state || !a.name || !b.name) {
+                    return 0
+                }
+                // Sort by state first
+                const stateCompare = a.state.localeCompare(b.state)
+                if (stateCompare !== 0) return stateCompare
+                // If states are equal, sort by region name
                 return a.name.localeCompare(b.name)
             })
         }
@@ -26,10 +33,41 @@ export const useRegionStore = defineStore('region', {
             this.loading = true
             this.error = null
             try {
-                this.regions = await RegionService.getAll()
+                const response = await RegionService.getAll()
+                console.log('API Response:', response)  // Debug log
+                
+                // Validate that we received an array
+                if (!Array.isArray(response)) {
+                    console.warn('Response is not an array:', response)  // Debug log
+                    throw new Error('Invalid response format')
+                }
+                
+                // Log before filtering
+                console.log('Before filtering:', response.length, 'items')  // Debug log
+                
+                // Validate each region object
+                this.regions = response.filter(region => {
+                    const isValid = region &&
+                        typeof region.id === 'number' &&
+                        typeof region.name === 'string' &&
+                        typeof region.state === 'string' &&
+                        typeof region.isActive === 'boolean' &&
+                        typeof region.createdAt === 'string' &&
+                        (region.updatedAt === null || typeof region.updatedAt === 'string')
+                    
+                    if (!isValid) {
+                        console.warn('Invalid region object:', region)  // Debug log
+                    }
+                    return isValid
+                })
+                
+                // Log after filtering
+                console.log('After filtering:', this.regions.length, 'items')  // Debug log
+                console.log('Filtered regions:', this.regions)  // Debug log
             } catch (error) {
                 this.error = 'Failed to fetch regions'
-                console.error(error)
+                console.error('Fetch error:', error)  // Debug log
+                this.regions = [] // Reset to empty array on error
             } finally {
                 this.loading = false
             }
@@ -56,7 +94,7 @@ export const useRegionStore = defineStore('region', {
             this.error = null
             try {
                 const updatedRegion = await RegionService.update(id, region)
-                const index = this.regions.findIndex(r => r.id === id)
+                const index = this.regions.findIndex((r: Region) => r.id === id)
                 if (index !== -1) {
                     this.regions[index] = updatedRegion
                 }
@@ -75,7 +113,7 @@ export const useRegionStore = defineStore('region', {
             this.error = null
             try {
                 const updatedRegion = await RegionService.toggleActive(id)
-                const index = this.regions.findIndex(r => r.id === id)
+                const index = this.regions.findIndex((r: Region) => r.id === id)
                 if (index !== -1) {
                     this.regions[index] = updatedRegion
                 }
