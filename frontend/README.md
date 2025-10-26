@@ -1,6 +1,21 @@
-# frontend
+# Region CRUD Frontend
 
-This template should help get you started developing with Vue 3 in Vite.
+A Vue.js frontend application for managing regions, built with Vue 3, TypeScript, and Vite.
+
+## Prerequisites
+
+- Node.js (^20.19.0 || >=22.12.0)
+- npm or yarn
+
+## Features
+
+- CRUD operations for regions
+- Sortable region list
+- Confirmation dialogs
+- Error handling
+- Loading states
+- Unit tests
+- TypeScript support
 
 ## Recommended IDE Setup
 
@@ -52,3 +67,40 @@ npm run test:unit
 ```sh
 npm run lint
 ```
+
+## Project Structure
+
+```
+src/
+├── assets/          # Static assets (CSS, images, etc.)
+├── components/      # Vue components
+│   ├── common/      # Shared components (ConfirmDialog, ErrorMessage, LoadingSpinner)
+│   └── regions/     # Region-specific components
+├── composables/     # Vue composables
+│   ├── useConfirmDialog.ts    # Confirmation dialog logic
+│   └── useSortable.ts        # Sortable list functionality
+├── router/          # Vue Router configuration
+├── services/        # API services
+│   └── RegionService.ts      # Region CRUD operations
+├── stores/          # Pinia stores
+│   └── RegionStore.ts        # Region state management
+├── types/           # TypeScript type definitions
+│   └── Region.ts             # Region interface
+├── utils/          # Utility functions
+└── views/          # Page components
+    └── RegionsView.vue       # Main regions page
+```
+
+## Dependencies
+
+### Core Dependencies
+- Vue.js 3.5
+- Vue Router 4.6
+- Pinia 3.0
+
+### Development Tools
+- Vite 7.1
+- TypeScript 5.9
+- ESLint 9.37
+- Prettier 3.6
+- Vitest 3.2
