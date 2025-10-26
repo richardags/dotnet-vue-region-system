@@ -2,11 +2,23 @@
 import { onMounted } from 'vue'
 import { useRegionStore } from '@/stores/RegionStore'
 import type { Region } from '@/types/Region'
+import { useSortable } from '@/composables/useSortable'
+import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+import ErrorMessage from '@/components/common/ErrorMessage.vue'
+import { formatDate } from '@/utils/regionHelpers'
 
 const regionStore = useRegionStore()
 
+// Initialize sorting
+const { sortOptions, sortedItems, toggleSort } = useSortable(
+  () => regionStore.filteredRegions,
+  { field: 'name', direction: 'asc' }
+)
+
 onMounted(async () => {
-  await regionStore.fetchRegions()
+  if (!regionStore.loading) {
+    await regionStore.fetchRegions()
+  }
 })
 
 const emit = defineEmits<{
@@ -15,15 +27,6 @@ const emit = defineEmits<{
   (e: 'delete', region: Region): void
   (e: 'add'): void
 }>()
-
-function handleSort(field: 'name' | 'state' | 'isActive') {
-  if (regionStore.sortField === field) {
-    regionStore.sortDirection = regionStore.sortDirection === 'asc' ? 'desc' : 'asc'
-  } else {
-    regionStore.sortField = field
-    regionStore.sortDirection = 'asc'
-  }
-}
 </script>
 
 <template>
@@ -63,57 +66,49 @@ function handleSort(field: 'name' | 'state' | 'isActive') {
       </div>
     </div>
 
-    <div v-if="regionStore.loading" class="loading-indicator" data-test-id="loading-indicator">
-      Loading regions...
-      <div class="loading-spinner"></div>
-    </div>
+    <LoadingSpinner 
+      v-if="regionStore.loading"
+      message="Loading regions..."
+    />
 
-    <div v-else-if="regionStore.error" class="error-message" data-test-id="error-message">
-      <span class="icon">⚠️</span>
-      {{ regionStore.error }}
-    </div>
+    <ErrorMessage
+      v-else-if="regionStore.error"
+      :message="regionStore.error"
+    />
 
     <table v-else class="region-table" data-test-id="regions-table">
       <thead>
         <tr>
           <th 
+            v-for="(label, field) in {
+              name: 'Name',
+              state: 'State',
+              isActive: 'Status',
+              createdAt: 'Created At'
+            }"
+            :key="field"
             class="sortable"
-            :class="{ sorted: regionStore.sortField === 'name' }"
-            @click="handleSort('name')"
+            :class="{ sorted: sortOptions.field === field }"
+            @click="toggleSort(field)"
           >
-            Name
+            {{ label }}
             <span class="sort-icon">
-              {{ regionStore.sortField === 'name' ? (regionStore.sortDirection === 'asc' ? '↑' : '↓') : '↕' }}
-            </span>
-          </th>
-          <th 
-            class="sortable"
-            :class="{ sorted: regionStore.sortField === 'state' }"
-            @click="handleSort('state')"
-          >
-            State
-            <span class="sort-icon">
-              {{ regionStore.sortField === 'state' ? (regionStore.sortDirection === 'asc' ? '↑' : '↓') : '↕' }}
-            </span>
-          </th>
-          <th 
-            class="sortable"
-            :class="{ sorted: regionStore.sortField === 'isActive' }"
-            @click="handleSort('isActive')"
-          >
-            Status
-            <span class="sort-icon">
-              {{ regionStore.sortField === 'isActive' ? (regionStore.sortDirection === 'asc' ? '↑' : '↓') : '↕' }}
+              {{ sortOptions.field === field 
+                ? (sortOptions.direction === 'asc' ? '↑' : '↓') 
+                : '↕' }}
             </span>
           </th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-if="regionStore.sortedRegions.length === 0">
-          <td colspan="4" class="text-center">No regions found</td>
+        <tr v-if="sortedItems.length === 0">
+          <td colspan="5" class="text-center">
+            No regions found
+            <p>Add your first region to get started</p>
+          </td>
         </tr>
-        <tr v-for="region in regionStore.sortedRegions" :key="region.id" :data-test-id="'region-row-' + region.id">
+        <tr v-for="region in sortedItems" :key="region.id" :data-test-id="'region-row-' + region.id">
           <td>{{ region.name }}</td>
           <td>{{ region.state }}</td>
           <td>
@@ -121,6 +116,7 @@ function handleSort(field: 'name' | 'state' | 'isActive') {
               {{ region.isActive ? 'Active' : 'Inactive' }}
             </span>
           </td>
+          <td>{{ formatDate(region.createdAt) }}</td>
           <td>
             <div class="action-buttons">
               <button 
@@ -204,13 +200,6 @@ function handleSort(field: 'name' | 'state' | 'isActive') {
   border-bottom: 1px solid var(--color-border);
 }
 
-.region-table th {
-  font-weight: 600;
-  background-color: var(--color-background-soft);
-  padding: 0.75rem;
-  transition: background-color 0.2s ease;
-}
-
 .region-table th.sortable {
   cursor: pointer;
   user-select: none;
@@ -226,26 +215,12 @@ function handleSort(field: 'name' | 'state' | 'isActive') {
   background-color: var(--color-background-mute);
 }
 
-.th-content {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  justify-content: space-between;
-  padding-right: 1.5rem;
-  position: relative;
-}
-
 .sort-icon {
   position: absolute;
   right: 0.5rem;
   top: 50%;
   transform: translateY(-50%);
-  display: inline-block;
-  font-size: 1rem;
-  font-weight: bold;
   opacity: 0.5;
-  color: var(--color-text);
-  margin-left: 0.5rem;
 }
 
 th.sorted .sort-icon {
@@ -253,27 +228,9 @@ th.sorted .sort-icon {
   color: var(--color-primary);
 }
 
-.region-table th.sortable:hover .sort-icon {
-  opacity: 1;
-}
-
 .action-buttons {
   display: flex;
   gap: 0.5rem;
-}
-
-.loading-indicator {
-  text-align: center;
-  padding: 2rem;
-  color: var(--color-text-light);
-}
-
-.error-message {
-  color: var(--color-danger);
-  padding: 1rem;
-  margin: 1rem 0;
-  border-radius: 4px;
-  background-color: var(--color-danger-bg);
 }
 
 .text-center {
@@ -283,39 +240,5 @@ th.sorted .sort-icon {
 .btn-sm {
   padding: 0.25rem 0.5rem;
   font-size: 0.875rem;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background-color: var(--color-background);
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  max-width: 90%;
-  width: 400px;
-}
-
-.modal-content h3 {
-  margin-top: 0;
-  color: var(--color-heading);
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1.5rem;
 }
 </style>

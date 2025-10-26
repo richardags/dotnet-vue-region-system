@@ -2,20 +2,21 @@
 import { ref, onMounted } from 'vue'
 import { useRegionStore } from '@/stores/RegionStore'
 import RegionForm from '@/components/RegionForm.vue'
-import RegionList from '@/components/RegionList.vue'
+import RegionList from '@/components/regions/RegionList.vue'
+import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
 import type { Region } from '@/types/Region'
 
 const regionStore = useRegionStore()
 const showForm = ref(false)
 const selectedRegion = ref<Region | null>(null)
-const showConfirmDialog = ref(false)
+const { isOpen: showConfirmDialog, options: confirmOptions, open: openConfirm, confirm, cancel } = useConfirmDialog()
 
-const regionToToggle = ref<number | null>(null)
-const regionToDelete = ref<Region | null>(null)
-const confirmationType = ref<'toggle' | 'delete'>('toggle')
-
-onMounted(() => {
-  regionStore.fetchRegions()
+onMounted(async () => {
+  // Only fetch if we meet all conditions (no regions, not loading, no error)
+  if (!regionStore.regions.length && !regionStore.loading && !regionStore.error) {
+    await regionStore.fetchRegions()
+  }
 })
 
 function openCreateForm() {
@@ -33,32 +34,40 @@ function closeForm() {
   selectedRegion.value = null
 }
 
-async function handleConfirmAction() {
-  try {
-    if (confirmationType.value === 'toggle' && regionToToggle.value !== null) {
-      await regionStore.toggleRegionActive(regionToToggle.value)
-      await regionStore.fetchRegions() // Ensure data is refreshed
-    } else if (confirmationType.value === 'delete' && regionToDelete.value !== null) {
-      await regionStore.deleteRegion(regionToDelete.value.id)
-      await regionStore.fetchRegions() // Ensure data is refreshed
+async function handleToggleRegion(region: Region) {
+  const confirmed = await openConfirm({
+    title: 'Confirm Action',
+    message: `Are you sure you want to ${region.isActive ? 'inactivate' : 'activate'} this region?`,
+    confirmLabel: 'Confirm',
+    type: region.isActive ? 'warning' : 'info'
+  })
+
+  if (confirmed) {
+    try {
+      await regionStore.toggleRegionActive(region.id)
+      await regionStore.fetchRegions()
+    } catch (error) {
+      console.error('Failed to toggle region:', error)
     }
-  } finally {
-    showConfirmDialog.value = false
-    regionToToggle.value = null
-    regionToDelete.value = null
   }
 }
 
-async function handleToggleRegion(region: Region) {
-  regionToToggle.value = region.id
-  confirmationType.value = 'toggle'
-  showConfirmDialog.value = true
-}
-
 async function handleDeleteRegion(region: Region) {
-  regionToDelete.value = region
-  confirmationType.value = 'delete'
-  showConfirmDialog.value = true
+  const confirmed = await openConfirm({
+    title: 'Delete Region',
+    message: `Are you sure you want to delete the region "${region.name}"? This action cannot be undone.`,
+    confirmLabel: 'Delete',
+    type: 'danger'
+  })
+
+  if (confirmed) {
+    try {
+      await regionStore.deleteRegion(region.id)
+      await regionStore.fetchRegions()
+    } catch (error) {
+      console.error('Failed to delete region:', error)
+    }
+  }
 }
 </script>
 
@@ -69,8 +78,8 @@ async function handleDeleteRegion(region: Region) {
     </div>
 
     <template v-if="regionStore.loading">
-      <div class="loading-spinner" data-test-id="loading-indicator">
-        <div class="spinner"></div>
+      <div class="loading-card" data-test-id="loading-indicator">
+        <div class="loading-spinner"></div>
         <p>Loading regions</p>
       </div>
     </template>
@@ -83,12 +92,21 @@ async function handleDeleteRegion(region: Region) {
     </template>
     
     <template v-else>
-      <RegionList
-        @edit="openEditForm"
-        @toggle="handleToggleRegion"
-        @delete="handleDeleteRegion"
-        @add="openCreateForm"
-      />
+      <template v-if="regionStore.regions.length === 0">
+        <div class="empty-state">
+          <h3>No regions found</h3>
+          <p>Add your first region to get started</p>
+          <button class="btn btn-primary" @click="openCreateForm">Add Region</button>
+        </div>
+      </template>
+      <template v-else>
+        <RegionList
+          @edit="openEditForm"
+          @toggle="handleToggleRegion"
+          @delete="handleDeleteRegion"
+          @add="openCreateForm"
+        />
+      </template>
     </template>
 
     <!-- Region Form Modal -->
@@ -100,34 +118,12 @@ async function handleDeleteRegion(region: Region) {
     </div>
 
     <!-- Confirmation Dialog -->
-    <div v-if="showConfirmDialog" class="modal-overlay">
-      <div class="card confirmation-dialog" data-test-id="confirmation-dialog">
-        <h3>{{ confirmationType === 'delete' ? 'Delete Region' : 'Confirm Action' }}</h3>
-        <p v-if="confirmationType === 'delete'">
-          Are you sure you want to delete the region "{{ regionToDelete?.name }}"?<br>
-          This action cannot be undone.
-        </p>
-        <p v-else>
-          Are you sure you want to {{ regionStore.regions.find((r: Region) => r.id === regionToToggle)?.isActive ? 'inactivate' : 'activate' }} this region?
-        </p>
-        <div class="dialog-actions">
-          <button 
-            class="btn btn-secondary" 
-            @click="showConfirmDialog = false"
-            data-test-id="cancel-action"
-          >
-            Cancel
-          </button>
-          <button 
-            :class="['btn', confirmationType === 'delete' ? 'btn-danger' : 'btn-primary']"
-            @click="handleConfirmAction"
-            data-test-id="confirm-action"
-          >
-            {{ confirmationType === 'delete' ? 'Delete' : 'Confirm' }}
-          </button>
-        </div>
-      </div>
-    </div>
+    <ConfirmDialog
+      :is-open="showConfirmDialog"
+      :options="confirmOptions"
+      @confirm="confirm"
+      @cancel="cancel"
+    />
   </div>
 </template>
 
