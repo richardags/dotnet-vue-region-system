@@ -110,10 +110,10 @@ function handleSort(field: 'name' | 'state' | 'isActive') {
         </tr>
       </thead>
       <tbody>
-        <tr v-if="regionStore.sortedRegions.length === 0">
+        <tr v-if="regionStore.filteredRegions.length === 0">
           <td colspan="4" class="text-center">No regions found</td>
         </tr>
-        <tr v-for="region in regionStore.sortedRegions" :key="region.id" :data-test-id="'region-row-' + region.id">
+        <tr v-for="region in regionStore.filteredRegions" :key="region.id" :data-test-id="'region-row-' + region.id">
           <td>{{ region.name }}</td>
           <td>{{ region.state }}</td>
           <td>

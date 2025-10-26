@@ -1,21 +1,22 @@
 import { ref, computed } from 'vue'
 
-export interface SortOptions<T extends string> {
+export interface SortOptions<T> {
   field: T
   direction: 'asc' | 'desc'
 }
 
-export function useSortable<T extends Record<string, any>, K extends keyof T>(
+export function useSortable<T>(
   items: T[] | (() => T[]),
-  defaultSort: SortOptions<K & string>
+  defaultSort: SortOptions<keyof T>
 ) {
-  const sortOptions = ref<SortOptions<K & string>>(defaultSort)
+  const sortOptions = ref<SortOptions<keyof T>>(defaultSort)
 
   const sortedItems = computed(() => {
     const currentItems = typeof items === 'function' ? items() : items || []
     return [...currentItems].sort((a, b) => {
-      const aVal = a[sortOptions.value.field]
-      const bVal = b[sortOptions.value.field]
+      const field = sortOptions.value.field
+      const aVal = a[field as keyof T]
+      const bVal = b[field as keyof T]
       
       const direction = sortOptions.value.direction === 'asc' ? 1 : -1
       
@@ -23,11 +24,15 @@ export function useSortable<T extends Record<string, any>, K extends keyof T>(
         return direction * aVal.localeCompare(bVal)
       }
       
-      return direction * (Number(aVal) - Number(bVal))
+      if (aVal instanceof Date && bVal instanceof Date) {
+        return direction * (aVal.getTime() - bVal.getTime())
+      }
+      
+      return direction * (Number(aVal ?? 0) - Number(bVal ?? 0))
     })
   })
 
-  const toggleSort = (field: K & string) => {
+  const toggleSort = (field: keyof T) => {
     if (sortOptions.value.field === field) {
       sortOptions.value.direction = sortOptions.value.direction === 'asc' ? 'desc' : 'asc'
     } else {

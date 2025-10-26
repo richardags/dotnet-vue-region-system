@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
 import { useRegionStore } from '@/stores/RegionStore'
 import type { Region } from '@/types/Region'
 import { useSortable } from '@/composables/useSortable'
@@ -10,7 +9,7 @@ import { formatDate } from '@/utils/regionHelpers'
 const regionStore = useRegionStore()
 
 // Initialize sorting
-const { sortOptions, sortedItems, toggleSort } = useSortable(
+const { sortOptions, sortedItems, toggleSort } = useSortable<Region>(
   () => regionStore.filteredRegions,
   { field: 'name', direction: 'asc' }
 )
