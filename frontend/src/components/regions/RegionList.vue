@@ -15,12 +15,6 @@ const { sortOptions, sortedItems, toggleSort } = useSortable(
   { field: 'name', direction: 'asc' }
 )
 
-onMounted(async () => {
-  if (!regionStore.loading) {
-    await regionStore.fetchRegions()
-  }
-})
-
 const emit = defineEmits<{
   (e: 'edit', region: Region): void
   (e: 'toggle', region: Region): void

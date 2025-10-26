@@ -45,7 +45,6 @@ async function handleToggleRegion(region: Region) {
   if (confirmed) {
     try {
       await regionStore.toggleRegionActive(region.id)
-      await regionStore.fetchRegions()
     } catch (error) {
       console.error('Failed to toggle region:', error)
     }
@@ -63,7 +62,6 @@ async function handleDeleteRegion(region: Region) {
   if (confirmed) {
     try {
       await regionStore.deleteRegion(region.id)
-      await regionStore.fetchRegions()
     } catch (error) {
       console.error('Failed to delete region:', error)
     }

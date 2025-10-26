@@ -52,9 +52,8 @@ export const useRegionStore = defineStore('region', {
             this.loading = true
             this.error = null
             try {
-                await RegionService.create(region)
-                await RegionService.getAll() // Get updated list
-                await this.fetchRegions() // Refresh list to ensure correct sorting
+                const newRegion = await RegionService.create(region)
+                this.regions = [...this.regions, newRegion]
             } catch (error) {
                 this.error = 'Failed to create region'
                 console.error(error)
@@ -68,9 +67,8 @@ export const useRegionStore = defineStore('region', {
             this.loading = true
             this.error = null
             try {
-                await RegionService.update(id, region)
-                await RegionService.getAll() // Get updated list
-                await this.fetchRegions() // Refresh list to ensure correct sorting
+                const updatedRegion = await RegionService.update(id, region)
+                this.regions = this.regions.map(r => r.id === id ? updatedRegion : r)
             } catch (error) {
                 this.error = 'Failed to update region'
                 console.error(error)
@@ -85,7 +83,10 @@ export const useRegionStore = defineStore('region', {
             this.error = null
             try {
                 await RegionService.toggleActive(id)
-                await this.fetchRegions() // Refresh the list to get updated data
+                // Update local state by toggling isActive for the region
+                this.regions = this.regions.map(r => 
+                    r.id === id ? { ...r, isActive: !r.isActive } : r
+                )
             } catch (error) {
                 this.error = 'Failed to toggle region status'
                 console.error(error)

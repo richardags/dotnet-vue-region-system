@@ -313,7 +313,6 @@ describe('RegionsView', () => {
                 await nextTick()
 
                 expect(store.deleteRegion).toHaveBeenCalledWith(1)
-                expect(store.fetchRegions).toHaveBeenCalled()
                 expect(dialog.props('isOpen')).toBe(false)
             })
         })

@@ -144,20 +144,8 @@ describe('RegionList', () => {
     })
 
     describe('Data Loading', () => {
-        it('fetches regions on mount', async () => {
-            const fetchRegions = vi.fn().mockResolvedValue(undefined)
-            wrapper = createWrapper({ fetchRegions })
-            await nextTick()
-
-            expect(fetchRegions).toHaveBeenCalled()
-        })
-
-        it('refreshes regions after toggling active state', async () => {
-            const fetchRegions = vi.fn().mockResolvedValue(undefined)
-            wrapper = createWrapper({ 
-                regions: mockRegions,
-                fetchRegions 
-            })
+        it('emits toggle event when toggling active state', async () => {
+            wrapper = createWrapper({ regions: mockRegions })
             await nextTick()
 
             const toggleButton = wrapper.find('[data-test-id="toggle-region-1"]')
@@ -165,7 +153,6 @@ describe('RegionList', () => {
             await toggleButton.trigger('click')
             await nextTick()
 
-            // Check that emit was called
             expect(wrapper.emitted('toggle')).toBeTruthy()
             const emitted = wrapper.emitted('toggle')?.[0]?.[0] as { id: number }
             expect(emitted.id).toBe(1)
